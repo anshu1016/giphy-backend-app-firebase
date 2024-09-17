@@ -6,7 +6,6 @@ const { db, admin } = require("./firebase");
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
-
 app.post("/signup", async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -16,7 +15,7 @@ app.post("/signup", async (req, res) => {
 
     // Create user in Firebase Authentication
     const userRecord = await admin.auth().createUser({
-      name,
+      displayName: name,
       email,
       password,
     });
@@ -33,13 +32,13 @@ app.post("/signup", async (req, res) => {
       .set({
         name: userRecord.displayName || "Anonymous", // Default value if undefined
         email: userRecord.email || "No Email", // Default value if undefined
-        // Add other fields if needed
       });
+
     // Return success message along with user details
     res.status(201).json({
       message: "User Signed Up Successfully!",
       uid: userRecord.uid,
-      name: userRecord.name,
+      name: userRecord.displayName,
       email: userRecord.email,
     });
   } catch (err) {
@@ -48,7 +47,6 @@ app.post("/signup", async (req, res) => {
   }
 });
 
-// SIGNIN
 app.post("/signin", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -56,38 +54,20 @@ app.post("/signin", async (req, res) => {
       return res.status(400).send("Email and password are required");
     }
 
-    // Sign in the user
-    const userCredential = await admin.auth().getUserByEmail(email);
-    if (!userCredential) {
-      return res.status(401).send("Invalid email or password");
-    }
+    // Firebase Admin SDK does not support signing in with email and password.
+    // You need to implement this on the client side and send an ID token to the server.
 
-    // Verify the password
-    const userRecord = await admin
-      .auth()
-      .signInWithEmailAndPassword(email, password);
-
-    // Generate a custom token
-    const token = await admin.auth().createCustomToken(userRecord.uid);
-
-    // Retrieve user details
-    const userDetails = {
-      uid: userRecord.uid,
-      email: userRecord.email,
-      name: userRecord.displayName || "Anonymous",
-    };
-
-    // Respond with token and user details
-    res.status(200).json({
-      token,
-      ...userDetails,
-    });
+    res
+      .status(400)
+      .send(
+        "Server-side sign-in not supported. Use client-side authentication."
+      );
   } catch (err) {
     console.log("SIGNIN ERROR", err.message);
     res.status(400).send("Error in SignIn");
   }
 });
-//SIGNOUT
+
 app.post("/signout", async (req, res) => {
   try {
     const { uid } = req.body;
